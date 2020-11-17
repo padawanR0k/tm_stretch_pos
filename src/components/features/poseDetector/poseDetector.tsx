@@ -9,6 +9,7 @@ import Progress from 'antd/lib/progress/progress';
 import { Divider, Spin } from 'antd';
 import { Header } from './comp/header';
 import { Warning } from './comp/warning';
+import { CheckCircleTwoTone } from '@ant-design/icons';
 
 interface Props {
 }
@@ -16,14 +17,19 @@ interface Props {
 interface States {
     classes: {
         [key: string]: any
-    },
-    current_position: string,
-    cam_loaded: boolean,
-    is_all_part_showing: boolean,
+    };
+    completed_position: {
+        [key: string]: boolean
+    };
+    current_position: string;
+    cam_loaded: boolean;
+    is_all_part_showing: boolean;
+    timer_count: number;
 }
 
 /** */
 class PoseDetector extends React.Component<Props, States> {
+    postion_timer?: NodeJS.Timer;
     URL = {
         model: 'https://teachablemachine.withgoogle.com/models/3ASUymSCy/model.json',
         metadata: 'https://teachablemachine.withgoogle.com/models/3ASUymSCy/metadata.json',
@@ -41,7 +47,9 @@ class PoseDetector extends React.Component<Props, States> {
             classes: {},
             current_position: '',
             cam_loaded: false,
-            is_all_part_showing: false
+            is_all_part_showing: false,
+            completed_position: {},
+            timer_count: 5,
         }
     }
     componentDidMount() {
@@ -104,6 +112,7 @@ class PoseDetector extends React.Component<Props, States> {
                 const prediction = await this.model.predict(posenetOutput);
 
                 let current_position = '';
+
                 const classes = prediction.reduce((acc: any, curr: any) => {
                     acc[curr.className] = Number(curr.probability.toFixed(2))
                     if (acc[curr.className] === 1) {
@@ -113,14 +122,34 @@ class PoseDetector extends React.Component<Props, States> {
                 }, {} as any)
 
                 if (this.state.current_position === '' || this.state.current_position !== current_position) {
+                    if (this.postion_timer) {
+                        clearInterval(this.postion_timer);
+                        this.setState({ timer_count: 5 });
+                    }
+
                     this.setState({
                         classes,
-                        current_position
+                        current_position,
+                    }, () => {
+                        if (current_position) {
+                            this.postion_timer = setInterval(() => {
+                                this.counting()
+                            }, 1000)
+                        }
                     })
-                    console.timeStamp()
                 }
 
                 this.drawPose(pose);
+
+                // 객체 초기화
+                const keys = Object.keys(this.state.completed_position);
+                if (keys.length === 0) {
+                    const completed_position: any = {};
+                    prediction.reduce((acc: any, curr: any) => {
+                        completed_position[curr.className] = false
+                    })
+                    this.setState({ completed_position });
+                }
             }
         } catch (error) {
         }
@@ -133,15 +162,6 @@ class PoseDetector extends React.Component<Props, States> {
         } else if (this.webcam.canvas) {
             if (this.ctx) {
                 this.ctx.drawImage(this.webcam.canvas, 0, 0);
-                // { score: 0.9964627623558044, part: "nose", position: { … } }
-                // 1: { score: 0.9983192682266235, part: "leftEye", position: { … } }
-                // 2: { score: 0.9983325600624084, part: "rightEye", position: { … } }
-                // 3: { score: 0.7143639326095581, part: "leftEar", position: { … } }
-                // 4: { score: 0.9661445617675781, part: "rightEar", position: { … } }
-                // 5: { score: 0.9714065790176392, part: "leftShoulder", position: { … } }
-                // 6: { score: 0.7849381566047668, part: "rightShoulder", position: { … } }
-                // 7: { score: 0.040635090321302414, part: "leftElbow", position: { … } }
-                // 8: { score: 0.061596691608428955, part: "rightElbow", position: { … } }
                 if (pose) {
                     const minPartConfidence = 0.5;
                     window.tmPose.drawKeypoints(pose.keypoints, minPartConfidence, this.ctx);
@@ -162,7 +182,7 @@ class PoseDetector extends React.Component<Props, States> {
      * 머리와 어깨가 화면에 보여지고 있는지 여부
      * @param keypoints
      */
-    check_parts = (keypoints: Required<{part: string, score: number}>[]) => {
+    check_parts = (keypoints: Required<{ part: string, score: number }>[]) => {
         const REQUIRE_PARTS = ["leftEye", "rightEye", "leftEar", "rightEar", "leftShoulder", "rightShoulder"];
 
         return keypoints.every(item => {
@@ -174,8 +194,25 @@ class PoseDetector extends React.Component<Props, States> {
         })
     }
 
+    counting = () => {
+        this.setState(({ timer_count }) => ({
+            timer_count: timer_count - 1
+        }), () => {
+            if (this.state.timer_count === 0) {
+                if (this.postion_timer) {
+                    clearInterval(this.postion_timer)
+                }
+                this.setState({
+                    completed_position: Object.assign({}, this.state.completed_position, {
+                        [this.state.current_position]: true
+                    })
+                })
+            }
+        })
+    }
+
     render() {
-        const { classes, is_all_part_showing, cam_loaded } = this.state
+        const { classes, is_all_part_showing, cam_loaded, completed_position, timer_count, current_position } = this.state
 
         const class_with_img: any = {
             neck_strecth_top: neck_top,
@@ -195,9 +232,9 @@ class PoseDetector extends React.Component<Props, States> {
 
                         {
                             is_all_part_showing || !cam_loaded
-                            ? null
-                            :
-                            <Warning />
+                                ? null
+                                :
+                                <Warning />
                         }
 
                         {
@@ -214,11 +251,16 @@ class PoseDetector extends React.Component<Props, States> {
                             return (
                                 class_with_img[key] &&
                                 <div className={"imgs__container " + (classes[key] === 1 ? 'active' : '')} key={index}>
-                                    <img
-                                        className="imgs__img"
-                                        src={class_with_img[key]}
-                                        alt="출처: http://www.seouldailynews.co.kr/coding/news.aspx/18/1/8347" />
-                                    <Progress percent={classes[key] * 100} type="line" />
+                                    <section>
+                                        <img
+                                            className="imgs__img"
+                                            src={class_with_img[key]}
+                                            alt="출처: http://www.seouldailynews.co.kr/coding/news.aspx/18/1/8347" />
+                                        {completed_position[key]
+                                            ? <CheckCircleTwoTone className="icon-success" twoToneColor="#52c41a" />
+                                            : current_position === key && <span className="count">{timer_count}</span>}
+                                    </section>
+                                    <Progress percent={Math.round(classes[key] * 100)} type="line" />
                                 </div>)
                         })}
                     </section>
