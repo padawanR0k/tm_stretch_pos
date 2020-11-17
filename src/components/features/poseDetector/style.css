@@ -1,0 +1,95 @@
+.title {
+	width: 100%;
+}
+#container {
+	padding: 16px;
+	width: 100%;
+	height: 100%;
+}
+
+.PoseDetector {
+	background-color: #fff;
+	box-shadow: 0 0 40px 0px rgba(0, 0, 0, .22);
+	border-radius: 40px;
+	width: 768px;
+	margin: 0 auto;
+	padding: 24px 0;
+}
+
+.imgs__container {
+	display: flex;
+	flex-direction: column;
+	padding: 16px;
+	border-radius: 24px;
+	transition: all 0.3s cubic-bezier(0.075, 0.82, 0.165, 1) ;
+}
+
+.imgs__container.active {
+	transform: translate(0, -25px) scale(1.1);
+	box-shadow: 0 0 20px 1px rgba(0, 0, 0, .2);
+}
+
+.imgs {
+	position: relative;
+	display: flex;
+	justify-content: space-around;
+	padding: 16px 0;
+}
+.imgs__img {
+	width: 100px;
+}
+
+.cam, header {
+	display: flex;
+	justify-content: center;
+}
+
+header {
+	padding-top: 16px;
+}
+
+.cam {
+	position: relative;
+	min-height: 400px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.cam canvas {
+	border-radius: 20px;
+}
+
+.cam .spinner {
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+}
+
+.warning {
+	position: absolute;
+	left: 50%;
+	z-index: 10;
+	padding: 16px;
+	width: 300px;
+	transform: translateX(-50%);
+	height: 300px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+	background-color: rgba(0, 0, 0, .75);
+	color: #fff;
+	font-size: 20px;
+	text-align: center;
+	border-radius: 20px;
+}
+
+.warning i {
+	display: block;
+	font-size: 48px;
+}
+
+.warning p {
+	word-break: keep-all;
+}

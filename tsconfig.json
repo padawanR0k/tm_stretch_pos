@@ -18,9 +18,17 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react"
+    "rootDir": "./src",
+    "jsx": "react",
+    "typeRoots": ["./typings"],
+    "declaration": true,
+    "declarationDir": "./typings"
   },
+  "files": [
+    "./typings/global.d.ts"
+  ],
   "include": [
-    "src"
+    "src",
+    "./typings"
   ]
 }
